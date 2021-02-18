@@ -131,7 +131,7 @@ DimPlot(SCOP_hepatocytes)
 #saveRDS(SCOP_hepatocytes, file = here("pilot_data/subset_analysis_hepatocytes.rds"))
 hepatocytes_features <- FindAllMarkers(SCOP_hepatocytes, only.pos = T, min.pct = 0.25, logfc.threshold = 0.25)
 #hepatocytes cluster based on sample more than function. Try to make an upset plot and see distinct genes in each cluster?
-install.packages("UpSetR")
+
 library(UpSetR)
 hepatocyte_deg <- SCOP.markers %>% 
   dplyr::filter(cluster %in% hepatocytes) %>% 
@@ -197,10 +197,60 @@ for (i in 0:6){
   cluster_GO[sum(i+1)]<-goResults
   
 }
-#saveRDS(cluster_GO, file = here("pilot_data/GO_data_hepatocytes.rds"))
-#saveRDS(cluster_uniques, file = here("pilot_data/hepatocyte_cluster_genes.rds"))
 for (i in 1:6){
   cluster_GO[[i]]<- setReadable(cluster_GO[[i]], OrgDb = org.Mm.eg.db, keyType="ENTREZID")
 }
-
+#saveRDS(cluster_GO, file = here("pilot_data/GO_data_hepatocytes.rds"))
+#saveRDS(cluster_uniques, file = here("pilot_data/hepatocyte_cluster_genes.rds"))
+cluster_GO <- readRDS("pilot_data/GO_data_hepatocytes.rds")
+cluster_genes <- readRDS("pilot_data/hepatocyte_cluster_genes.rds")
 dotplot(cluster_GO[[1]])
+
+####Create figures####
+Idents(SCOP)<-"HTO_classification"
+SCOP <- RenameIdents(SCOP, 
+                              "322-KO"="HNKO",
+                              "342-WT"="WT",
+                              "318-WT"="WT",
+                              "328-KO"="HNKO",
+                              "338-WT"="WT",
+                              "344-KO"="HNKO")
+SCOP$genotype <- Idents(SCOP)
+DimPlot(SCOP, split.by = "genotype")
+cell_types <- c("HNKO 1", 
+                "Hepatocytes 1", 
+                "Periportal",
+                "Hepatocytes 2",
+                "Hepatocytes 3",
+                "HNKO  2",
+                "Central ",
+                "Endothelial",
+                "Leukocytes",
+                "Stellate",
+                "Cholangiocyte",
+                "Kupfer")
+names(cell_types)<-levels(SCOP)
+SCOP <- RenameIdents(SCOP, cell_types)
+SCOP$cell_types <- Idents(SCOP)
+#factor order of levels
+SCOP$cell_types<- factor(SCOP$cell_types, levels = c( 
+                                                     "Hepatocytes 1", 
+                                                     "Hepatocytes 2",
+                                                     "Hepatocytes 3",
+                                                     "Central ",
+                                                     "Periportal",
+                                                     "HNKO 1",
+                                                     "HNKO  2",
+                                                     "Endothelial",
+                                                     "Cholangiocyte",
+                                                     "Stellate",
+                                                     "Leukocytes",
+                                                     "Kupfer"))
+
+plot_markers <- c("Acaa1b", "Slc1a2" , "Glul","Cyp2f2","Cyp17a1", "Stab2", "Ptprb", "Ctnnd2","Spp1", "Dcn", "Rbms3",  "Hdac9","Inpp4b", "Timd4", "Ptprc")
+Idents(SCOP)<-"cell_types"
+DotPlot(SCOP, split.by = "genotype", features = plot_markers)+
+  theme(axis.text.x = element_text(size = 8))
+DimPlot(SCOP, split.by = "genotype")
+#saveRDS(SCOP, file = here("pilot_data/SCOP_annotated.rds"))
+SCOP <- loadRDS(here("pilot_data/SCOP_annotated.rds"))
